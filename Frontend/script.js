@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
           try {
               // Send the message to your server
+              //START COMMENT IF TESTING STYLES
               const response = await fetch('http://localhost:3001/get-response', {
                   method: 'POST',
                   headers: {
@@ -35,12 +36,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
               }
 
               const data = await response.json();
+              //END COMMENT
 
               // Remove loading indicator
               chatMessages.removeChild(loadingDiv)
 
               // Display bot's response
               const botResponseDiv = document.createElement('div');
+              // botResponseDiv.textContent = "Hello!";
               botResponseDiv.textContent = data.message;
               botResponseDiv.className = 'bot-message';
               chatMessages.appendChild(botResponseDiv);

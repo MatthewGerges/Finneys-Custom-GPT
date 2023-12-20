@@ -48,24 +48,31 @@
     background-color: #0056b3;
   }
   .bot-message, .user-message {
-    display: table; /* This will make the bubble wrap the content */
+    display: block; /* This ensures each message appears on a new line */
+    margin-bottom: 10px;
     padding: 10px;
     border-radius: 5px;
-    margin-bottom: 10px;
     word-wrap: break-word;
+    width: fit-content; /* This will make the container fit the content's width */
+    max-width: 80%;
+    margin-left: auto; /* Aligns the user message to the right */
+    margin-right: auto; /* Aligns the bot message to the left */
   }
+  
   .bot-message {
     background-color: #555;
     text-align: left;
-    margin-right: auto; /* Aligns the bubble to the left */
+    margin-left: 10px; /* Add some space on the right side of bot messages */
   }
   
   .user-message {
     background-color: #007bff;
     text-align: left;
-    margin-left: auto; /* Aligns the bubble to the right */
+    margin-right: 20px; /* Add some space on the left side of user messages */
     color: white;
   }
+  
+  
   .loading-indicator {
     color: #007bff;
     text-align: center;

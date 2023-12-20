@@ -1,42 +1,80 @@
 const express = require('express');
-const axios = require('axios');
+const { OpenAI } = require('openai');
 const cors = require('cors');
-require('dotenv').config(); // Ensure you've run `npm install dotenv` and have a .env file with OPENAI_API_KEY
+require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const openAIKey = process.env.OPENAI_API_KEY;
+const openai = new OpenAI(process.env.OPENAI_API_KEY);
 
 app.post('/get-response', async (req, res) => {
     const userMessage = req.body.message;
+    const assistantId = 'asst_FjXlnGFz9Am4IWs3xOS2IEf8'; // Replace with your actual assistant ID
+    const thread = await openai.beta.threads.create();
 
-    try {
-        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-            model: 'gpt-3.5-turbo',
-            messages: [{ role: "user", content: userMessage }],
-            temperature: 0.7
-        }, {
-            headers: {
-                'Authorization': `Bearer ${openAIKey}`,
-                'Content-Type': 'application/json'
-            }
-        });
+    await openai.beta.threads.messages.create(thread.id, {
+        role: "user",
+        content: userMessage,
+      });
 
-        // Log the response to the server console
-        console.log('OpenAI response:', response.data);
+    // Use runs to wait for the assistant response and then retrieve it
+    const run = await openai.beta.threads.runs.create(thread.id, {
+        assistant_id: assistantId,
+    });
 
-        // Extract the content of the response from the assistant
-        const botResponse = response.data.choices[0].message.content.trim();
+    let runStatus = await openai.beta.threads.runs.retrieve(
+        thread.id,
+        run.id
+      );
 
-        // Send the bot's response to the frontend
-        res.json({ message: botResponse });
+      // Polling mechanism to see if runStatus is completed
+      // This should be made more robust.
+      while (runStatus.status !== "completed") {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+      }
 
-    } catch (error) {
-        console.error('Axios error:', error.response);
-        res.status(500).send('Error processing your request');
-    }
+      // Get the last assistant message from the messages array
+      const messages = await openai.beta.threads.messages.list(thread.id);
+
+      // Find the last message for the current run
+      const lastMessageForRun = messages.data
+        .filter(
+          (message) => message.run_id === run.id && message.role === "assistant"
+        )
+        .pop();
+
+      // If an assistant message is found, console.log() it
+      assistantMessage = ""
+      if (lastMessageForRun) {
+        assistantMessage = lastMessageForRun.content[0].text.value
+        // console.log(`${assistantMessage} \n`);
+      }
+    
+      res.json({ message: assistantMessage });
+
+    // try {
+    //     const response = await openai.createMessage({
+    //         assistant_id: assistantId,
+    //         model: "davinci", // Replace with the specific model you're using with the assistant, if necessary
+    //         messages: [{
+    //             role: "user",
+    //             content: userMessage
+    //         }]
+    //     });
+
+    //     // Assuming the assistant's response is in the last message of the array
+    //     const lastMessage = response.data.data.messages.slice(-1)[0];
+
+    //     // Send the assistant's response to the frontend
+    //     res.json({ message: lastMessage.content });
+
+    // } catch (error) {
+    //     console.error('OpenAI error:', error);
+    //     res.status(500).send('Error processing your request');
+    // }
 });
 
 const PORT = 3001;
